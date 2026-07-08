@@ -1,42 +1,42 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'
+    }
+
     environment {
-        IMAGE_NAME = "viraj0510/employee-management"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: 'main',
+                url: 'https://github.com/viraj0510/employee-management.git'
             }
         }
 
         stage('Build') {
             steps {
-                sh '/usr/local/bin/mvn clean package'
+                sh 'mvn clean package'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Test') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                sh 'mvn test'
             }
         }
 
-        stage('Push Docker Image') {
+        stage('SonarQube Analysis') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
+                withSonarQubeEnv('SonarQube') {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                    docker logout
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=employee-management \
+                    -Dsonar.projectName=employee-management
                     '''
                 }
             }
@@ -45,7 +45,7 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "Pipeline Successful!"
         }
     }
 }
