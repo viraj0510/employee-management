@@ -62,6 +62,19 @@ stage('Push Docker Image') {
         }
     }
 }
+stage('Deploy') {
+    steps {
+        sh '''
+            docker stop employee-management || true
+            docker rm employee-management || true
+
+            docker run -d \
+                --name employee-management \
+                -p 8081:8080 \
+                viraj0510/employee-management:latest
+        '''
+    }
+}
     }
 
     post {
